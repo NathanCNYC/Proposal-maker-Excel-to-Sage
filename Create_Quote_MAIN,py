@@ -1,0 +1,33 @@
+# main.py  – Excel ➜ GUI ➜ Sage upload ➜ Outlook draft
+# ====================================================
+
+import sys
+from pathlib import Path
+
+from extract_proposal import extract_proposal_data
+from proposal_gui     import run_gui_editor
+from send_to_sage     import send_to_sage
+from email_draft      import create_outlook_draft      
+
+def main() -> None:
+    # 1) pull data from the open “M Breakdown” workbook
+    try:
+        data = extract_proposal_data()
+    except Exception as err:
+        print("Excel extraction failed:", err)
+        sys.exit(1)
+
+    # 2) let the user tweak values in the GUI
+    data = run_gui_editor(data)          # blocks until Send/Close
+
+    # 3) upload quote & download ONE PDF  (returns dict)
+    result = send_to_sage(data, headless=False, slow_mo=50)
+    pdf_path : Path = result["pdf"]
+    quote_id : str  = result["quote_id"]
+
+    # 4) open an Outlook draft with the PDF attached
+    create_outlook_draft(data, pdf_path, quote_id)
+    print("✓ Outlook draft created – review and press Send.")
+
+if __name__ == "__main__":
+    main()
